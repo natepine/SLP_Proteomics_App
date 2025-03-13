@@ -304,171 +304,6 @@ def plot_half_life_plotly(tp, sn, half_life_result, protein_id, show_all_points=
 
     return fig
 
-# def plot_half_life_plotly(tp, sn, half_life_result, protein_id, show_all_points=False):
-#     """
-#     Plots the observed data and the fitted curve (linear or nonlinear)
-#     with dashed lines indicating the half-life using Plotly.  Includes
-#     confidence interval visualization.
-
-#     Args:
-#         tp (list or numpy.ndarray): Time points.
-#         sn (list or numpy.ndarray): Signal intensities.
-#         half_life_result (dict): Output from the half_life_v4 function.
-#         protein_id (str): Protein ID for the plot title.
-#         show_all_points (bool): Show all points or just averages.
-
-#     Returns:
-#         plotly.graph_objects.Figure: The Plotly figure.
-#     """
-
-#     # Consistent tp_dense
-#     tp_dense = np.linspace(min(tp), max(tp), 300)
-
-#     # Prepare data
-#     if show_all_points:
-#         plot_tp = tp
-#         plot_sn = sn
-#         mode = 'markers'  # Use markers for individual points
-#         marker_size = 7
-#         alpha = 0.75
-#     else:
-#         tpsn = pd.DataFrame({"tp": tp, "sn": sn})
-#         agg_tpsn = tpsn.groupby("tp")["sn"].mean().reset_index()
-#         plot_tp = agg_tpsn["tp"]
-#         plot_sn = agg_tpsn["sn"]
-#         mode = 'markers'
-#         marker_size = 10
-#         alpha = 1
-
-#         # Check for empty plot_sn
-#     if not isinstance(plot_sn, np.ndarray):
-#         plot_sn = np.array(plot_sn) #Convert to numpy array for .size
-#     if not plot_sn.size:
-#         print("Warning: No data to plot after filtering.")
-#         return go.Figure()  # Return an empty figure
-
-#     # Create the base figure
-#     fig = go.Figure()
-
-#     # Add observed data points
-#     fig.add_trace(go.Scatter(x=plot_tp, y=plot_sn, mode=mode, name="Observed Data",
-#                              marker=dict(size=marker_size, color='steelblue', opacity=alpha)))
-
-#     if half_life_result["useLinear"] == 'true':
-#         # Linear fit
-#         slope = np.log(0.5) / half_life_result["half_life"]
-#         intercept = np.log(half_life_result["Linear_R0"])
-#         y_fit = np.exp(intercept + slope * tp_dense)
-#         if np.isnan(y_fit).sum() >= 0:
-#             y_fit[np.isnan(y_fit)] = 0
-#         fig.add_trace(go.Scatter(x=tp_dense, y=y_fit, mode='lines', name="Linear Fit",
-#                                  line=dict(color='black')))
-#         half_life_intensity = np.exp(intercept + slope * half_life_result["half_life"])
-
-
-#         # --- Linear Confidence Interval (statsmodels) ---
-#         df = pd.DataFrame({'tp': tp_dense, 'sn': y_fit})
-#         lmodel = smf.ols('np.log(sn) ~ tp', data=df).fit()
-#         predictions = lmodel.get_prediction(df)
-#         pred_df = predictions.summary_frame(alpha=0.05)
-
-#         # fig.add_trace(go.Scatter(x=tp_dense, y=np.exp(pred_df['obs_ci_upper']), mode='lines',
-#         #                          line=dict(width=0), showlegend=False, name='CI_upper'))
-#         # fig.add_trace(go.Scatter(x=tp_dense, y=np.exp(pred_df['obs_ci_lower']), mode='lines',
-#         #                          line=dict(width=0), fill='tonexty', fillcolor='rgba(128,128,128,0.3)',
-#         #                          showlegend=False, name='CI_lower'))
-#         # --- End Linear CI ---
-
-#     else:
-#         # Nonlinear fit
-#         def ssasymp(t, Asym, R0, lrc):
-#             return Asym + (R0 - Asym) * np.exp(-np.exp(lrc) * t)
-
-#         y_fit = ssasymp(tp_dense, half_life_result["Nonlinear_Asym"],
-#                         half_life_result["NonLinear_R0"], half_life_result["lrc"])
-#         fig.add_trace(go.Scatter(x=tp_dense, y=y_fit, mode='lines', name="Nonlinear Fit",
-#                                  line=dict(color='black')))
-#         half_life_intensity = ssasymp(half_life_result["half_life"], half_life_result["Nonlinear_Asym"],
-#                                        half_life_result["NonLinear_R0"], half_life_result["lrc"])
-#         # --- Nonlinear Confidence Interval ---
-#         # if not np.isnan(half_life_result["half_life_CI_lower"]) and not np.isnan(half_life_result["half_life_CI_upper"]):
-#         #   try:
-#             # y_lower = ssasymp(half_life_result["half_life_CI_lower"], half_life_result["Nonlinear_Asym"], half_life_result["NonLinear_R0"], half_life_result["lrc"])
-#             # y_upper = ssasymp(half_life_result["half_life_CI_upper"], half_life_result["Nonlinear_Asym"], half_life_result["NonLinear_R0"], half_life_result["lrc"])
-
-#             # #Extend lines over the full range
-#             # x_lower = [0, half_life_result["half_life_CI_lower"]]
-#             # y_lower_extend = [y_lower, y_lower]
-#             # x_upper = [0, half_life_result["half_life_CI_upper"]]
-#             # y_upper_extend = [y_upper, y_upper]
-
-
-#             # # Create a dense array that can be used
-#             # dense_x = np.linspace(min(tp_dense), max(tp_dense), 300)
-#             # y_lower_interp = np.interp(dense_x, x_lower, y_lower_extend, left=np.nan, right=np.nan)
-#             # y_upper_interp = np.interp(dense_x, x_upper, y_upper_extend, left=np.nan, right=np.nan)
-
-#             # # Remove nans so that the plot draws correctly.
-#             # nan_indices = np.isnan(y_lower_interp) | np.isnan(y_upper_interp)
-#             # y_lower_interp = y_lower_interp[~nan_indices]
-#             # y_upper_interp = y_upper_interp[~nan_indices]
-#             # dense_x_filtered = dense_x[~nan_indices]
-
-
-#             # fig.add_trace(go.Scatter(x=dense_x_filtered, y=y_upper_interp,
-#             #                             mode='lines', line=dict(width=0),
-#             #                             showlegend=False, name='CI_upper'))
-#             # fig.add_trace(go.Scatter(x=dense_x_filtered, y=y_lower_interp,
-#             #                             mode='lines', line=dict(width=0),
-#             #                             fill='tonexty', fillcolor='rgba(128,128,128,0.3)',
-#             #                             showlegend=False, name='CI_lower'))
-
-#         #   except:
-#         #       pass
-#         # --- End Nonlinear CI ---
-
-
-#     # Add half-life lines (handle inf/nan)
-#     half_life = half_life_result["half_life"]
-#     if not np.isinf(half_life) and not np.isnan(half_life):
-#         fig.add_trace(go.Scatter(x=[half_life, half_life], y=[0, half_life_intensity],
-#                                  mode='lines', line=dict(dash='dash', color='gray'),
-#                                  name=f"Half-life: {half_life:.2f}"))
-#         fig.add_trace(go.Scatter(x=[0, half_life], y=[half_life_intensity, half_life_intensity],
-#                                  mode='lines', line=dict(dash='dash', color='gray'),
-#                                  showlegend=False))  # Hide duplicate legend entry
-
-
-
-#     # --- Dynamic Axis Limits ---
-#     if not isinstance(y_fit, np.ndarray): # Convert y_fit to an array so the max function works
-#         y_fit = np.array(y_fit) # Convert list to array
-#     max_y = max(np.max(plot_sn), np.max(y_fit))
-#     fig.update_layout(xaxis_title="Time Points",
-#                       yaxis_title="Relative Protein Abundance",
-#                       title=f"Protein: {protein_id}",
-#                       yaxis_range=[0, max_y * 1.1],
-#                       xaxis_range=[0, max(tp) * 1.1],
-#                       legend=dict(
-#                         orientation="v",
-#                         yanchor="top",
-#                         y=0.99,
-#                         xanchor="right",
-#                         x=0.99))
-#     # ---
-
-#     fig.add_annotation(text=f'HL: {half_life:.2f}',
-#                         x=half_life, 
-#                         y=half_life_intensity,
-#                         # ax=50, 
-#                         # ay=-10,
-#                         xshift=3,
-#                         xanchor='left',
-#                         arrowsize=3,
-#                         font_size=12)
-
-#     return fig
-
 def plot_half_life_plotly(tp, sn, half_life_result, protein_id, show_all_points=False):
     """
     Plots the observed data and the fitted curve (linear or nonlinear)
@@ -806,18 +641,19 @@ def convert_to_stringDB_df(input_accession_list=None):
   stringID_list = df['stringId'].tolist()
   return(stringID_list)
 
+ratio_df = pd.read_csv('data/Ratios_data.csv')
+hl_df = pd.read_csv('data/HL_data.csv')
+uniprot_df = pd.read_csv('data/idmapping_2025_03_07.tsv',sep='\t').rename(columns={'Entry':'Accession'})
 
-
-# data_df = pd.read_csv('C:\\Users\\mz1\\Downloads\\COMPLETE_precomb_SN_Ratio_Stats_HL_CI_800.csv')
-data_df = pd.read_csv('data/HL_analysis_w_uniprot.csv')
-data_df = data_df.drop_duplicates(subset='Protein Id|Cell_line')
+data_df = pd.merge(ratio_df,hl_df,on='Protein Id|Cell_line')
+data_df['Accession'] = data_df['Protein Id'].str.split('|').str[1]  
+data_df = pd.merge(data_df,uniprot_df,on='Accession',how='left')
+data_df = data_df.drop_duplicates(subset=['Protein Id|Cell_line'])
 data_df = data_df.sort_values(by='Cell_line')
 
 cells = sorted(data_df['Cell_line'].unique())  # Dynamically get cells and sort them
 
 DSLP_df = pd.read_csv('data/DSLP_analysis_w_uniprot.csv')
-
-uniprot_map_df = pd.read_csv('data/idmapping_2025_03_07.tsv',sep='\t')
 
 ICONS = {
     "user": fa.icon_svg('vials'),
