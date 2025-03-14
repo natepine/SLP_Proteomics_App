@@ -558,7 +558,7 @@ app_ui = ui.page_sidebar(
                     ui.hr(),
                     ui.input_selectize("protein_id", "Select Protein", multiple = False, choices=['sp|Q9BXS6|NUSAP_HUMAN'],selected='sp|Q9BXS6|NUSAP_HUMAN',width='800px'),
                     open="desktop"),
-                ui.input_dark_mode(mode='dark'),
+                ui.input_dark_mode(mode='light'),
                 width = 335),
             ui.page_fluid(
                 ui.layout_columns(
@@ -632,7 +632,7 @@ app_ui = ui.page_sidebar(
                         ui.layout_sidebar(
                             ui.sidebar(
                                 ui.input_selectize(
-                                    "Select_cells_w_SLP", "Select Cell Lines:", dict(zip(cells, cells)),multiple=True,)),
+                                    "Select_cells_w_SLP", "Select Cell Lines:", dict(zip(cells, cells)),multiple=True,),open="desktop"),
                             ui.output_data_frame("create_only_slp_df")), 
                             ui.download_button("download_SLP_in_all_cells", "Download CSV"),
                         full_screen=True),
@@ -651,7 +651,7 @@ app_ui = ui.page_sidebar(
                         ui.layout_sidebar(
                             ui.sidebar(
                                 ui.input_selectize(
-                                    "Select_cells_w_diffSLP", "Select Cell Lines:", dict(zip(cells, cells)),multiple=True,)),
+                                    "Select_cells_w_diffSLP", "Select Cell Lines:", dict(zip(cells, cells)),multiple=True,),open="desktop"),
                             ui.output_data_frame("differential_slp")), 
                             ui.download_button("download_DSLP_data", "Download CSV"),
                         full_screen=True),
