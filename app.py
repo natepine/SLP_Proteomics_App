@@ -530,6 +530,8 @@ data_df = pd.merge(data_df,uniprot_df,on='Accession',how='left')
 data_df = data_df.drop_duplicates(subset=['Protein Id|Cell_line'])
 data_df = data_df.sort_values(by='Cell_line')
 
+# data_df['Protein Id'] = str(data_df['Protein Id'] + "|" + data_df['Gene Symbol'])
+
 proteins = sorted(data_df['Protein Id'].unique().tolist()) 
 cells = sorted(data_df['Cell_line'].unique().tolist())  # Dynamically get cells and sort them
 
@@ -551,10 +553,11 @@ app_ui = ui.page_sidebar(
                     ui.input_checkbox_group("Cell_line",
                                         "Cell Line",
                                         cells,
-                                        selected=cells[0],
+                                        selected=cells,
                                         inline=True,
                                         width='150px'), 
-                    ui.input_action_button("reset", "Select All"),
+                    ui.input_action_button("Select_all", "Select All"),
+                    ui.input_action_button("Deselect_all", "Deselect All"),
                     ui.hr(),
                     ui.input_selectize("protein_id", "Select Protein", multiple = False, choices=['sp|Q9BXS6|NUSAP_HUMAN'],selected='sp|Q9BXS6|NUSAP_HUMAN',width='800px'),
                     open="desktop"),
@@ -733,7 +736,7 @@ def server(input, output, session):
             return render.DataTable(pd.DataFrame())
 
         df = df.loc[df['short']== True,
-                                 ['Protein Id','Gene Names (primary)','Number of peptides', 'Cell_line', 'Description', 'half_life', 'half_life_CI_lower',
+                                 ['Protein Id','Gene Symbol','Number of peptides', 'Cell_line', 'Description', 'half_life', 'half_life_CI_lower',
                                   'half_life_CI_upper']]
         df[['half_life','half_life_CI_lower','half_life_CI_upper']]  = round(df[['half_life','half_life_CI_lower','half_life_CI_upper']],2)
         df["Description"] = df["Description"].str.split(" OS=Homo", expand=True)[0]
@@ -886,7 +889,7 @@ def server(input, output, session):
         SLP_df = SLP_df.loc[SLP_df['SLP_Occurance'] >= list_count,]
 
         SLP_df = SLP_df[['Protein Id',
-                         'Gene Names (primary)',
+                         'Gene Symbol',
                          'Cell_line',
                          'half_life',
                          'R2',
@@ -962,7 +965,7 @@ def server(input, output, session):
         
         SLP_df = DSLP_df.copy()
         SLP_df[['half_life1','half_life2','CI1_lower','CI1_upper','CI2_lower','CI2_upper']] = round(SLP_df[['half_life1','half_life2','CI1_lower','CI1_upper','CI2_lower','CI2_upper']],2)
-        SLP_df = SLP_df.loc[(SLP_df['Cell_line1'].isin(cell_list_of_interest))|(SLP_df['Cell_line2'].isin(cell_list_of_interest))]
+        SLP_df = SLP_df.loc[(SLP_df['Cell_line1'].isin(cell_list_of_interest))&(SLP_df['Cell_line2'].isin(cell_list_of_interest))]
         SLP_df = SLP_df.loc[SLP_df['DSLP'] == True,]
         SLP_df = SLP_df.drop(columns=['DSLP'])
         return(SLP_df)
@@ -991,10 +994,16 @@ def server(input, output, session):
     
 
     @reactive.effect
-    @reactive.event(input.reset)
+    @reactive.event(input.Select_all)
     def _():
         # ui.update_slider("total_bill", value=bill_rng)
         ui.update_checkbox_group("Cell_line", selected=cells)
+
+    @reactive.effect
+    @reactive.event(input.Deselect_all)
+    def __():
+        # ui.update_slider("total_bill", value=bill_rng)
+        ui.update_checkbox_group("Cell_line", selected=[])
 
 
 app = App(app_ui, server)
