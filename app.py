@@ -503,6 +503,13 @@ def TMT_PCA_out(input_df,PC_x=None,PC_y=None,Xvariance=None,Yvariance=None):
 
   loadings_df = input_df.copy()
 
+  marker_symbols  = {'0h':'circle',
+                    '1h':'square',
+                    '2h':'x',
+                    '4h':'star-square',
+                    '6h':'diamond',
+                    '8h':'hexagon2'}
+
   fig = px.scatter(loadings_df.filter(regex='PC.'),
                     x=PC_x,
                     y=PC_y,
@@ -510,7 +517,8 @@ def TMT_PCA_out(input_df,PC_x=None,PC_y=None,Xvariance=None,Yvariance=None):
                             PC_y : f'{PC_y} ({Yvariance}%)' },
                     color=loadings_df['cell_line'].values,
                     symbol=loadings_df['timepoint'].values,
-                   color_discrete_sequence=px.colors.qualitative.Prism)
+                    color_discrete_sequence=px.colors.qualitative.Prism,
+                    symbol_map=marker_symbols)
 
   fig.update_traces(marker={'size': 15})
 
@@ -580,7 +588,10 @@ app_ui = ui.page_sidebar(
                     fill=False),
                 ui.layout_columns(
                     ui.card(
-                        ui.card_header("Short Lived Proteins"), ui.output_data_frame("full_slp_table"), full_screen=True),
+                        ui.card_header("Short Lived Proteins"), 
+                        ui.output_data_frame("full_slp_table"), 
+                        ui.download_button("download_all_SLP_data", "Download CSV"),
+                        full_screen=True),
                     ui.card(
                         ui.card_header(
                                 "PCA",
@@ -627,7 +638,10 @@ app_ui = ui.page_sidebar(
                         full_screen=True,),),
                 ui.layout_columns(
                     ui.card(
-                        ui.card_header("Half-life Data"), ui.output_data_frame("HL_table"), full_screen=True),),
+                        ui.card_header("Half-life Data"), 
+                        ui.output_data_frame("HL_table"), 
+                        ui.download_button("download_protein_HL_data", "Download CSV"),
+                        full_screen=True),),
                 ui.hr(),
                 ui.layout_columns(
                     ui.card(
@@ -740,7 +754,16 @@ def server(input, output, session):
                                   'half_life_CI_upper']]
         df[['half_life','half_life_CI_lower','half_life_CI_upper']]  = round(df[['half_life','half_life_CI_lower','half_life_CI_upper']],2)
         df["Description"] = df["Description"].str.split(" OS=Homo", expand=True)[0]
-        return render.DataTable(df, filters=True, styles ={'class' : "display text-center"})
+        return render.DataTable(df, 
+                                filters=True, 
+                                styles ={'class' : "display text-center"},
+                                width="100%")
+    
+    @render.download(filename="all_SLP_data.csv")
+    def download_all_SLP_data():
+            SLP_data = full_slp_table.data_view(selected=False) 
+            yield SLP_data.to_csv(index=False)
+
     
     
     @render_plotly
@@ -867,7 +890,18 @@ def server(input, output, session):
         data_df[['half_life','half_life_CI_lower','half_life_CI_upper']]  = round(data_df[['half_life','half_life_CI_lower','half_life_CI_upper']],2)
 
         data_df["Description"] = data_df["Description"].str.split(" OS=Homo", expand=True)[0]
-        return render.DataTable(data_df, filters=True, styles ={'class' : "display text-center"})
+        return render.DataTable(data_df, 
+                                filters=True, 
+                                styles ={'class' : "display text-center"},
+                                width="100%")
+
+    @render.download(filename="selected_protein_half_life_data.csv")
+    def download_protein_HL_data():
+            HL_selected_data = HL_table.data_view(selected=False) 
+            yield HL_selected_data.to_csv(index=False)
+
+
+
 ### SLP in all cells 
 
     @reactive.calc
@@ -919,14 +953,18 @@ def server(input, output, session):
         
         SLP_df[['half_life','half_life_CI_lower','half_life_CI_upper']]  = round(SLP_df[['half_life','half_life_CI_lower','half_life_CI_upper']],2)
         
-        return render.DataTable(SLP_df, filters=True, styles ={'class' : "display text-center"})
+        return render.DataTable(SLP_df, 
+                                filters=True, 
+                                styles ={'class' : "display text-center"},
+                                width="100%")
     
     
     @render.download(filename="SLPs_in_all_cells.csv")
     def download_SLP_in_all_cells():
+            selected_cell_data = create_only_slp_df.data_view(selected=False)
             # file: list[FileInfo] | None = data
             # df = pd.read_csv(file[0]["datapath"])
-            yield filter_slp_only_df().to_csv(index=False)
+            yield selected_cell_data.to_csv(index=False)
 
     @render.data_frame
     def gene_enrichment_df():
@@ -945,13 +983,15 @@ def server(input, output, session):
 
         SDB_results_df = SDB_results_df[['category','description','number_of_genes','p_value','fdr','number_of_genes_in_background','preferredNames']]
 
-        return render.DataTable(SDB_results_df, filters=True, styles ={'class' : "display text-center"})
+        return render.DataTable(SDB_results_df, 
+                                filters=True, 
+                                styles ={'class' : "display text-center"},
+                                width="100%")
     
     @render.download(filename="Gene_enrichment_in_all_cells.csv")
     def download_gene_enrichment():
-            # file: list[FileInfo] | None = data
-            # df = pd.read_csv(file[0]["datapath"])
-            yield filter_slp_only_df().to_csv(index=False)
+            GO_selected_data = gene_enrichment_df.data_view(selected=False) 
+            yield GO_selected_data.to_csv(index=False)
 
 
 ### Differential SLP output 
@@ -984,9 +1024,12 @@ def server(input, output, session):
                                         'CI2_lower',
                                         'CI2_upper']),filters=True)
         
-        return render.DataTable(filtered_DSLP_df, filters=True, styles ={'class' : "display text-center"})
+        return render.DataTable(filtered_DSLP_df, 
+                                filters=True, 
+                                styles ={'class' : "display text-center"},
+                                width="100%")
     
-    @render.download(filename="DSLP.csv")
+    @render.download(filename="Differential_SLP_data.csv")
     def download_DSLP_data():
             # file: list[FileInfo] | None = data
             # df = pd.read_csv(file[0]["datapath"])
